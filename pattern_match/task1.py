@@ -1,13 +1,45 @@
 """Matching input patterns for Task 1."""
 import re
-import common_regex
-import test_util
+from pattern_match import common_regex
+from pattern_match import test_util
+from pattern_match import errors
 import spacy
 
 
-def match_name(user_input):
-    """Match user input pattern for task 1.a.
+def goal(number):
+    """Interface for getting match method per goal.
 
+    Usage from calling code:
+    from pattern_match import match  # imports all task files
+    is_match, info = match.task(1).goal(1)(user_input)
+
+    Args:
+      number: the goal number.
+
+    Returns:
+      function accepting a SpaCy document of user input,
+        which returns a tuple (bool, info) containing a
+        bool indicating whether the input is a match to
+        the requirements, and optionally any info that
+        needs to be extracted from the input.
+
+    Raises:
+      InvalidKeyError: if the goal number is not in the set of
+        expected values.
+    """
+    goals = {
+        1: match_name,
+        2: match_nice_to_meet_you,
+        3: match_how_are_you_response}
+    if number not in goals.keys():
+        raise errors.InvalidKeyError(number, goals.keys())
+    return goals[number]
+
+
+def match_name(user_input):
+    """Match user input pattern for task 1.1.
+
+    PATTERN MATCHED:
     BOT: What's your name?
     USR: [options]
     My name's ____.
@@ -19,14 +51,19 @@ def match_name(user_input):
     ____.
     [/options]
 
-    Issues:
+    INFO RETURNED:
+    The user's name.
+
+    ISSUES:
     - Deal with punctuation - i.e. full stop?
     - What if they forget to capitalize their name?
 
     Args:
       user_input: the user input (string)
+
     Returns:
-      Boolean indicating a match for the desired pattern(s).
+      is_match, info: Boolean indicating a match for the
+        desired pattern(s); the user's name.
     """
     regexs = [
         r"^My name's %s(.)?$" % common_regex.NAME,
@@ -38,30 +75,42 @@ def match_name(user_input):
         r'^%s(.)?$' % common_regex.NAME
     ]
     match = False
+    user_name = None
     for r in regexs:
-        if re.match(r, user_input.text):
+        match = re.match(r, user_input.text)
+        if match:
             match = True
-    return match
+        if match:
+            user_name = match.group(1)
+    return match, user_name
 
 
 def match_nice_to_meet_you(user_input):
-    """Match user input pattern for task 1.b.
+    """Match user input pattern for task 1.2.
 
+    PATTERN MATCHED:
     BOT: Nice to meet you.
     USR: Nice to meet you, too.
 
+    INFO RETURNED:
+    None.
+
     Args:
       user_input: the user input (string).
+
     Returns:
-      Boolean indicating a match for the desired pattern(s).
+      is_match, info: Boolean indicating a match for the
+        desired pattern(s); None.
     """
+    errors.check_input(user_input)
     r = r'^Nice to meet you, too(.)?'
-    return re.match(r, user_input.text) is not None
+    return re.match(r, user_input.text) is not None, None
 
 
 def match_how_are_you_response(user_input):
-    """Match user input pattern for task 1.c
+    """Match user input pattern for task 1.3.
 
+    PATTERN MATCHED:
     BOT: How are you today?
     USR: [options]
     I am {state}(, thank you)?
@@ -69,17 +118,22 @@ def match_how_are_you_response(user_input):
     {state}(, thank you)
     [/options]
 
-    There is a lot of potential variation in the state.
-    Therefore make this a regex group, extract it, and process
-    it separately.
+    INFO RETURNED:
+    The user's state.
 
-    Acceptable states are defined as adjectives of less than
-    15 characters.
+    ISSUES:
+    - There is a lot of potential variation in the state.
+      Therefore make this a regex group, extract it, and process
+      it separately.
+    - Acceptable states are defined as adjectives of less than
+      15 characters.
 
     Args:
       user_input: the user input (string).
+
     Returns:
-      Boolean indicating a match for the desired pattern(s).
+      is_match, info: Boolean indicating a match for the
+        desired pattern(s); user state.
     """
     r = r"((I am)|(I'm))?(?P<state>[a-z]{,15})(, thank you)?(.)?"
     pattern_match = re.match(r, user_input.text)

@@ -34,7 +34,9 @@ def test_matches(matches, non_matches, match_fn):
     """
     print('Testing matches for %s...' % match_fn.__name__)
     for doc in matches:
-        assertion(match_fn(doc), True, doc.text)
+        is_match, _ = match_fn(doc)
+        assertion(is_match, True, doc.text)
     for doc in non_matches:
-        assertion(match_fn(doc), False, doc.text)
+        is_match, _ = match_fn(doc)
+        assertion(is_match, False, doc.text)
     print('Testing completed.')

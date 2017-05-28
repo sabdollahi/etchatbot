@@ -1,8 +1,8 @@
 """Commonly required regular expressions."""
 import re
 import spacy
-import errors
-import test_util
+from pattern_match import errors
+from pattern_match import test_util
 
 
 NAME = r'(?P<first_name>[A-Z][a-z]*)(?P<last_name>\s[A-Z][a-z]*)?'
@@ -19,10 +19,7 @@ def name(user_input):
     Raises:
       ArgumentError: if the user_input is not a spacy doc.
     """
-    if not isinstance(user_input, spacy.tokens.doc.Doc):
-        raise errors.ArgumentError(
-            argument_type=type(user_input),
-            expected_argument_type=spacy.tokens.doc.Doc)
+    errors.check_input(user_input)
     regex = r'^(?P<first_name>[A-Z][a-z]*)(?P<last_name>\s[A-Z][a-z]*)?$'
     return re.match(regex, user_input.text) is not None
 
