@@ -5,38 +5,38 @@ def assertion(actual, expected, info):
     """Wrapper for assert that provides debug info.
 
     Args:
-      actual: actual result (boolean).
-      expected: expected result (boolean).
+      actual: actual result.
+      expected: expected result.
       info: info (string) to print for debugging.
     """
-    if expected:
-        try:
-            assert actual
-        except AssertionError:
-            print('Assertion failed for: %s\n'
-                  'Expected True; Actual False.' % info)
-    else:
-        try:
-            assert not actual
-        except AssertionError:
-            print('Assertion failed for: %s\n'
-                  'Expected False; Actual True.' % info)
+    try:
+        assert actual == expected
+    except AssertionError:
+        print('Assertion failed for: %s\n'
+              'Actual: %s'
+              'Expected: %s' % (info, actual, expected))
 
 
 def test_matches(matches, non_matches, match_fn):
     """Utility for testing against a regex.
 
+    Decided at this stage not to evaluate info for
+    non-match classes. They are not evaluated by the
+    individual functions in case of a non-match anyway.
+
     Args:
-      matches: a list of spacy docs that should match the regex.
-      non_matches: a list of spacy docs that should not
-        match the regex.
+      matches: a list of tuples (spacy doc, info) that
+        should match the regex, and be the info extracted.
+      non_matches: a list of tuples (spacy doc, info) that
+        should not match the regex.
       match_fn: the matching function to evaluate.
     """
     print('Testing matches for %s...' % match_fn.__name__)
-    for doc in matches:
-        is_match, _ = match_fn(doc)
-        assertion(is_match, True, doc.text)
-    for doc in non_matches:
-        is_match, _ = match_fn(doc)
-        assertion(is_match, False, doc.text)
+    for user_input, info in matches:
+        result = match_fn(user_input)
+        assertion(result.match, True, user_input.text)
+        assertion(info, result.info, user_input.text)
+    for user_input, info in non_matches:
+        result = match_fn(user_input)
+        assertion(result.match, False, user_input.text)
     print('Testing completed.')
