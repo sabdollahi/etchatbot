@@ -1,9 +1,8 @@
 """Matching input patterns for Task 1."""
 import re
-from pattern_match import common_regex
-from pattern_match import test_util
-from pattern_match import errors
+from pattern_match import common_regex, test_util, models, errors
 import spacy
+from util import pos
 
 
 def goal(number):
@@ -62,8 +61,7 @@ def match_name(user_input):
       user_input: the user input (string)
 
     Returns:
-      is_match, info: Boolean indicating a match for the
-        desired pattern(s); the user's name.
+      Match object.
     """
     regexs = [
         r"^My name's %s(.)?$" % common_regex.NAME,
@@ -82,7 +80,7 @@ def match_name(user_input):
             match = True
         if match:
             user_name = match.group(1)
-    return match, user_name
+    return models.Match(user_input, match, user_name)
 
 
 def match_nice_to_meet_you(user_input):
@@ -99,12 +97,12 @@ def match_nice_to_meet_you(user_input):
       user_input: the user input (string).
 
     Returns:
-      is_match, info: Boolean indicating a match for the
-        desired pattern(s); None.
+      Match object.
     """
     errors.check_input(user_input)
     r = r'^Nice to meet you, too(.)?'
-    return re.match(r, user_input.text) is not None, None
+    match = re.match(r, user_input.text) is not None
+    return models.Match(user_input, match, None)
 
 
 def match_how_are_you_response(user_input):
@@ -125,58 +123,77 @@ def match_how_are_you_response(user_input):
     - There is a lot of potential variation in the state.
       Therefore make this a regex group, extract it, and process
       it separately.
-    - Acceptable states are defined as adjectives of less than
-      15 characters.
+    - What about adjective modifiers for the state? very happy,
+      super tired, not good, etc...?
 
     Args:
       user_input: the user input (string).
 
     Returns:
-      is_match, info: Boolean indicating a match for the
-        desired pattern(s); user state.
+      Match objects.
     """
-    r = r"((I am)|(I'm))?(?P<state>[a-z]{,15})(, thank you)?(.)?"
+    r = r"^(I'm |I am )?(?P<state>([A-Z]{1}[a-z]*)|[a-z-]*)(, thank you|, thanks)?(.)?$"
+    match = False
+    state = None
     pattern_match = re.match(r, user_input.text)
-    if pattern_match:
-        state = pattern_match.group(1)
-
-    return False
+    if pattern_match is not None:
+        state = pattern_match.group(2)
+        # state should be an adjective
+        state_tok = next(t for t in user_input if t.text == state)
+        if state_tok.tag_ in pos.ADJECTIVES:
+            match = True
+    return models.Match(user_input, match, state)
 
 
 #
 # Testing
 
 
-def test_match_name():
-    # test cases for match_name
-    nlp = spacy.load('en')
+def test_match_name(nlp):
     matches = [
-        nlp("My name's Tim."),
-        nlp('My name is Tim'),
-        nlp("It's Tim."),
-        nlp('It is Tim'),
-        nlp("I'm Tim"),
-        nlp('I am Tim.'),
-        nlp('Tim.')]
+        (nlp("My name's Tim."), 'Tim'),
+        (nlp('My name is Bob'), 'Bob'),
+        (nlp("It's Henry."), 'Henry'),
+        (nlp('It is Frank'), 'Frank'),
+        (nlp("I'm Hank"), 'Hank'),
+        (nlp('I am Joe.'), 'Joe'),
+        (nlp('Satan.'), 'Satan')]
     non_matches = [
-        nlp('What is your name?'),  # far out
-        nlp('My name is tim.'),     # missing capital, how to deal with this?
-        nlp('My nome it Tim')]      # spelling mistakes
+        (nlp('What is your name?'), None),   # far out
+        (nlp('My name is tim.'), None),      # missing capital
+        (nlp('My nome it Tim'), 'Tim')]      # spelling mistakes
     test_util.test_matches(matches, non_matches, match_name)
 
 
-def test_match_nice_to_meet_you():
-    # test cases for match_nice_to_meet_you
-    nlp = spacy.load('en')
+def test_match_nice_to_meet_you(nlp):
     matches = [
-        nlp('Nice to meet you, too'),
-        nlp('Nice to meet you, too.')]
+        (nlp('Nice to meet you, too'), None),
+        (nlp('Nice to meet you, too.'), None)]
     non_matches = [
-        nlp('Nice to meet you too')]  # missing comma
+        (nlp('Nice to meet you too'), None)]  # missing comma
     test_util.test_matches(matches, non_matches, match_nice_to_meet_you)
+
+
+def test_match_how_are_you_response(nlp):
+    matches = [
+        (nlp('I am happy, thank you'), 'happy'),
+        (nlp("I'm good, thanks"), 'good'),
+        (nlp('I am fine.'), 'fine'),
+        (nlp("I'm sad"), 'sad'),
+        (nlp('Healthy, thank you.'), 'Healthy'),
+        (nlp('Hungry'), 'Hungry'),
+        (nlp('I am happy, thanks.'), '')]
+    non_matches = [
+        (nlp('I am banana, thank you.'), 'banana'),   # not an adjective
+        (nlp('I am fine thank you.'), 'fine'),        # no comma
+        (nlp('I am a small village near the sea, thank you.'), None)  # loco
+    ]
+    test_util.test_matches(matches, non_matches, match_how_are_you_response)
 
 
 if __name__ == '__main__':
     # run all tests
-    test_match_name()
-    test_match_nice_to_meet_you()
+    nlp = spacy.load('en')
+    test_match_name(nlp)
+    test_match_nice_to_meet_you(nlp)
+    test_match_how_are_you_response(nlp)

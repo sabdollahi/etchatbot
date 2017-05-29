@@ -12,11 +12,7 @@ def match_and_info(task_number, goal_number, user_input):
       user_input: Spacy doc of the user input to process.
 
     Returns:
-      is_match, info: is_match is a Bool to indicate whether
-        the required pattern is matched, and info is any
-        optional info (such as the user's name after we ask
-        for it). is_match will always return a value, but
-        sometimes info will be None.
+      Match object.
     """
     errors.check_input(user_input)
     return __task(task_number).goal(goal_number)(user_input)
