@@ -58,7 +58,7 @@ def match_name(user_input):
     - What if they forget to capitalize their name?
 
     Args:
-      user_input: the user input (string)
+      user_input: the user input (SpaCy doc)
 
     Returns:
       Match object.
@@ -73,14 +73,13 @@ def match_name(user_input):
         r'^%s(.)?$' % common_regex.NAME
     ]
     match = False
-    user_name = None
+    info = None
     for r in regexs:
-        match = re.match(r, user_input.text)
-        if match:
+        pattern_match = re.match(r, user_input.text)
+        if pattern_match:
             match = True
-        if match:
-            user_name = match.group(1)
-    return models.Match(user_input, match, user_name)
+            info = pattern_match.group(1)
+    return models.Match(user_input, match, info)
 
 
 def match_nice_to_meet_you(user_input):
@@ -94,15 +93,17 @@ def match_nice_to_meet_you(user_input):
     None.
 
     Args:
-      user_input: the user input (string).
+      user_input: the user input (SpaCy doc).
 
     Returns:
       Match object.
     """
-    errors.check_input(user_input)
     r = r'^Nice to meet you, too(.)?'
-    match = re.match(r, user_input.text) is not None
-    return models.Match(user_input, match, None)
+    match = False
+    info = None
+    if re.match(r, user_input.text):
+        match = True
+    return models.Match(user_input, match, info)
 
 
 def match_how_are_you_response(user_input):
@@ -127,23 +128,60 @@ def match_how_are_you_response(user_input):
       super tired, not good, etc...?
 
     Args:
-      user_input: the user input (string).
+      user_input: the user input (SpaCy doc).
 
     Returns:
       Match objects.
     """
-    r = r"^(I'm |I am )?(?P<state>([A-Z]{1}[a-z]*)|[a-z-]*)(, thank you|, thanks)?(.)?$"
+    r = r"^(I'm |I am )?" \
+        r"(?P<state>([A-Z]{1}[a-z]*)|[a-z-]*)" \
+        r"(, thank you|, thanks)?(.)?$"
     match = False
-    state = None
+    info = None
     pattern_match = re.match(r, user_input.text)
     if pattern_match is not None:
-        state = pattern_match.group(2)
+        info = pattern_match.group(2)
         # state should be an adjective
-        state_tok = next(t for t in user_input if t.text == state)
+        state_tok = next(t for t in user_input if t.text == info)
         if state_tok.tag_ in pos.ADJECTIVES:
             match = True
-    return models.Match(user_input, match, state)
+    return models.Match(user_input, match, info)
 
+
+def match_where_are_you_from_response(user_input):
+    """Match user input pattern for task 1.4.
+
+        PATTERN MATCHED:
+        BOT: Where are you from?
+        USR: [options]
+        I am from {Place}
+        I'm from {Place}
+        {Place}
+        [/options]
+
+        INFO RETURNED:
+        Where the user is from.
+
+        ISSUES:
+        - What if the respond with an ethnicity: e.g. I'm Taiwanese?
+        - To really validate this input we need to make sure they
+          say a place, e.g. "Taiwan", and not something silly like
+          "Earth".
+
+        Args:
+          user_input: the user input (SpaCy doc).
+
+        Returns:
+          Match objects.
+        """
+    r = r"$(I'm from |I am from )?%s(.)?^" % common_regex.NAME  # same as place
+    match = False
+    info = None
+    pattern_match = re.match(r, user_input.text)
+    if pattern_match:
+        match = True
+        info = pattern_match.group(2)
+    return models.Match(user_input, match, info)
 
 #
 # Testing
@@ -159,9 +197,9 @@ def test_match_name(nlp):
         (nlp('I am Joe.'), 'Joe'),
         (nlp('Satan.'), 'Satan')]
     non_matches = [
-        (nlp('What is your name?'), None),   # far out
-        (nlp('My name is tim.'), None),      # missing capital
-        (nlp('My nome it Tim'), 'Tim')]      # spelling mistakes
+        nlp('What is your name?'),   # far out
+        nlp('My name is tim.'),      # missing capital
+        nlp('My nome it Tim')]      # spelling mistakes
     test_util.test_matches(matches, non_matches, match_name)
 
 
@@ -170,7 +208,7 @@ def test_match_nice_to_meet_you(nlp):
         (nlp('Nice to meet you, too'), None),
         (nlp('Nice to meet you, too.'), None)]
     non_matches = [
-        (nlp('Nice to meet you too'), None)]  # missing comma
+        nlp('Nice to meet you too')]  # missing comma
     test_util.test_matches(matches, non_matches, match_nice_to_meet_you)
 
 
@@ -184,16 +222,21 @@ def test_match_how_are_you_response(nlp):
         (nlp('Hungry'), 'Hungry'),
         (nlp('I am happy, thanks.'), '')]
     non_matches = [
-        (nlp('I am banana, thank you.'), 'banana'),   # not an adjective
-        (nlp('I am fine thank you.'), 'fine'),        # no comma
-        (nlp('I am a small village near the sea, thank you.'), None)  # loco
-    ]
+        nlp('I am banana, thank you.'),                        # not an adj.
+        nlp('I am fine thank you.'),                           # no comma
+        nlp('I am a small village near the sea, thank you.')]  # loco
     test_util.test_matches(matches, non_matches, match_how_are_you_response)
 
 
-if __name__ == '__main__':
-    # run all tests
-    nlp = spacy.load('en')
-    test_match_name(nlp)
-    test_match_nice_to_meet_you(nlp)
-    test_match_how_are_you_response(nlp)
+def test_match_where_are_your_from_response(nlp):
+    matches = [
+        (nlp('I am from New Zealand'), 'New Zealand'),
+        (nlp("I'm from Taiwan."), 'Taiwan'),
+        (nlp('Iran.'), 'Iran')]
+    non_matches = [
+        nlp('I am an elephant'),
+        nlp('I am Taiwan.'),
+        nlp('I am from taiwan')]
+    test_util.test_matches(matches,
+                           non_matches,
+                           match_where_are_you_from_response)

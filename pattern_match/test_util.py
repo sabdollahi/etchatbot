@@ -13,7 +13,7 @@ def assertion(actual, expected, info):
         assert actual == expected
     except AssertionError:
         print('Assertion failed for: %s\n'
-              'Actual: %s'
+              'Actual: %s\n'
               'Expected: %s' % (info, actual, expected))
 
 
@@ -31,12 +31,12 @@ def test_matches(matches, non_matches, match_fn):
         should not match the regex.
       match_fn: the matching function to evaluate.
     """
-    print('Testing matches for %s...' % match_fn.__name__)
+    print('------\nTesting matches for %s...' % match_fn.__name__)
     for user_input, info in matches:
         result = match_fn(user_input)
         assertion(result.match, True, user_input.text)
         assertion(info, result.info, user_input.text)
-    for user_input, info in non_matches:
+    for user_input in non_matches:
         result = match_fn(user_input)
         assertion(result.match, False, user_input.text)
     print('Testing completed.')
