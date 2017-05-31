@@ -1,8 +1,7 @@
 """Matching input patterns for Task 1."""
 import re
-
 from pattern_match import common_regex, models, errors
-from util import pos, test_util
+from util import pos, test_util, NLP
 
 
 def goal(number):
@@ -112,9 +111,9 @@ def match_how_are_you_response(user_input):
     PATTERN MATCHED:
     BOT: How are you today?
     USR: [options]
-    I am {state}(, thank you)?
-    I'm {state}(, thank you)
-    {state}(, thank you)
+    I am {state}(, thank you|thanks)
+    I'm {state}(, thank you|thanks)
+    {State}(, thank you|thanks)
     [/options]
 
     INFO RETURNED:
@@ -142,8 +141,8 @@ def match_how_are_you_response(user_input):
     if pattern_match is not None:
         info = pattern_match.group(2)
         # state should be an adjective
-        state_tok = next(t for t in user_input if t.text == info)
-        if state_tok.tag_ in pos.ADJECTIVES:
+        info_tok = NLP(info)[0]
+        if info_tok.tag_ in pos.ADJECTIVES:
             match = True
     return models.Match(user_input, match, info)
 
@@ -187,56 +186,55 @@ def match_where_are_you_from_response(user_input):
 # Testing
 
 
-def test_match_name(nlp):
+def test_match_name():
     matches = [
-        (nlp("My name's Tim."), 'Tim'),
-        (nlp('My name is Bob'), 'Bob'),
-        (nlp("It's Henry."), 'Henry'),
-        (nlp('It is Frank'), 'Frank'),
-        (nlp("I'm Hank"), 'Hank'),
-        (nlp('I am Joe.'), 'Joe'),
-        (nlp('Satan.'), 'Satan')]
+        (NLP("My name's Tim."), 'Tim'),
+        (NLP('My name is Bob'), 'Bob'),
+        (NLP("It's Henry."), 'Henry'),
+        (NLP('It is Frank'), 'Frank'),
+        (NLP("I'm Hank"), 'Hank'),
+        (NLP('I am Joe.'), 'Joe'),
+        (NLP('Satan.'), 'Satan')]
     non_matches = [
-        nlp('What is your name?'),   # far out
-        nlp('My name is tim.'),      # missing capital
-        nlp('My nome it Tim')]      # spelling mistakes
+        NLP('What is your name?'),   # far out
+        NLP('My name is tim.'),      # missing capital
+        NLP('My nome it Tim')]      # spelling mistakes
     test_util.test_matches(matches, non_matches, match_name)
 
 
-def test_match_nice_to_meet_you(nlp):
+def test_match_nice_to_meet_you():
     matches = [
-        (nlp('Nice to meet you, too'), None),
-        (nlp('Nice to meet you, too.'), None)]
+        (NLP('Nice to meet you, too'), None),
+        (NLP('Nice to meet you, too.'), None)]
     non_matches = [
-        nlp('Nice to meet you too')]  # missing comma
+        NLP('Nice to meet you too')]  # missing comma
     test_util.test_matches(matches, non_matches, match_nice_to_meet_you)
 
 
-def test_match_how_are_you_response(nlp):
+def test_match_how_are_you_response():
     matches = [
-        (nlp('I am happy, thank you'), 'happy'),
-        (nlp("I'm good, thanks"), 'good'),
-        (nlp('I am fine.'), 'fine'),
-        (nlp("I'm sad"), 'sad'),
-        (nlp('Healthy, thank you.'), 'Healthy'),
-        (nlp('Hungry'), 'Hungry'),
-        (nlp('I am happy, thanks.'), '')]
+        (NLP('I am happy, thank you'), 'happy'),
+        (NLP("I'm good, thanks"), 'good'),
+        (NLP('I am fine.'), 'fine'),
+        (NLP("I'm sad"), 'sad'),
+        (NLP('Healthy, thank you.'), 'Healthy'),
+        (NLP('I am happy, thanks.'), 'happy')]
     non_matches = [
-        nlp('I am banana, thank you.'),                        # not an adj.
-        nlp('I am fine thank you.'),                           # no comma
-        nlp('I am a small village near the sea, thank you.')]  # loco
+        NLP('I am banana, thank you.'),                        # not an adj.
+        NLP('I am fine thank you.'),                           # no comma
+        NLP('I am a small village near the sea, thank you.')]  # loco
     test_util.test_matches(matches, non_matches, match_how_are_you_response)
 
 
-def test_match_where_are_your_from_response(nlp):
+def test_match_where_are_your_from_response():
     matches = [
-        (nlp('I am from New Zealand'), 'New Zealand'),
-        (nlp("I'm from Taiwan."), 'Taiwan'),
-        (nlp('Iran.'), 'Iran')]
+        (NLP('I am from New Zealand'), 'New Zealand'),
+        (NLP("I'm from Taiwan."), 'Taiwan'),
+        (NLP('Iran.'), 'Iran')]
     non_matches = [
-        nlp('I am an elephant'),
-        nlp('I am Taiwan.'),
-        nlp('I am from taiwan')]
+        NLP('I am an elephant'),
+        NLP('I am Taiwan.'),
+        NLP('I am from taiwan')]
     test_util.test_matches(matches,
                            non_matches,
                            match_where_are_you_from_response)

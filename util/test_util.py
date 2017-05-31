@@ -9,12 +9,15 @@ def assertion(actual, expected, info):
       expected: expected result.
       info: info (string) to print for debugging.
     """
+    success = False
     try:
         assert actual == expected
+        success = True
     except AssertionError:
         print('Assertion failed for: %s\n'
               'Actual: %s\n'
               'Expected: %s' % (info, actual, expected))
+    return success
 
 
 def test_matches(matches, non_matches, match_fn):
@@ -32,11 +35,19 @@ def test_matches(matches, non_matches, match_fn):
       match_fn: the matching function to evaluate.
     """
     print('------\nTesting matches for %s...' % match_fn.__name__)
+    success = True
     for user_input, info in matches:
         result = match_fn(user_input)
-        assertion(result.match, True, user_input.text)
-        assertion(info, result.info, user_input.text)
+        s1 = assertion(result.match, True, user_input.text)
+        s2 = assertion(info, result.info, user_input.text)
+        if not s1 or not s2:
+            success = False
     for user_input in non_matches:
         result = match_fn(user_input)
-        assertion(result.match, False, user_input.text)
-    print('Testing completed.')
+        s1 = assertion(result.match, False, user_input.text)
+        if not s1:
+            success = False
+    if success:
+        print('*** OK ***\n')
+    else:
+        print('*** FAILED ***\n')
