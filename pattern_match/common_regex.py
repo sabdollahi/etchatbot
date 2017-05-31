@@ -1,9 +1,10 @@
 """Commonly required regular expressions."""
 import re
-import spacy
-from pattern_match import errors
-from pattern_match import test_util
 
+import spacy
+
+from pattern_match import errors
+from util import test_util
 
 NAME = r'(?P<first_name>[A-Z][a-z]*)(?P<last_name>\s[A-Z][a-z]*)?'
 

@@ -1,8 +1,8 @@
 """Matching input patterns for Task 1."""
 import re
-from pattern_match import common_regex, test_util, models, errors
-import spacy
-from util import pos
+
+from pattern_match import common_regex, models, errors
+from util import pos, test_util
 
 
 def goal(number):
