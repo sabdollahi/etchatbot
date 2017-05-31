@@ -6,7 +6,7 @@ import spacy
 from pattern_match import errors
 from util import test_util
 
-NAME = r'(?P<first_name>[A-Z][a-z]*)(?P<last_name>\s[A-Z][a-z]*)?'
+NAME = r'(?P<name>(?P<first_name>[A-Z][a-z]*)(?P<last_name>\s[A-Z][a-z]*)?)'
 
 
 def name(user_input):

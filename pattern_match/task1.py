@@ -77,7 +77,7 @@ def match_name(user_input):
         pattern_match = re.match(r, user_input.text)
         if pattern_match:
             match = True
-            info = pattern_match.group(1)
+            info = pattern_match.group('name')
     return models.Match(user_input, match, info)
 
 
@@ -173,13 +173,13 @@ def match_where_are_you_from_response(user_input):
         Returns:
           Match objects.
         """
-    r = r"$(I'm from |I am from )?%s(.)?^" % common_regex.NAME  # same as place
+    r = r"^(I'm from |I am from )?%s(.)?$" % common_regex.NAME  # same as place
     match = False
     info = None
     pattern_match = re.match(r, user_input.text)
     if pattern_match:
         match = True
-        info = pattern_match.group(2)
+        info = pattern_match.group('name')
     return models.Match(user_input, match, info)
 
 #
