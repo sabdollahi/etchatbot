@@ -1,0 +1,50 @@
+import psycopg2
+
+
+class ChatBotDB:
+    def connect(self):
+        try:
+            self.conn = psycopg2.connect("dbname='ChatBot' user='postgres'")
+            self.cur = self.conn.cursor()
+        except:
+            print "Unable to connect to the database"
+
+    def insertUser(self,name):
+        self.cur.execute("INSERT INTO users (name) VALUES ('" + name + "')  RETURNING id")
+        row = self.cur.fetchone()
+        self.conn.commit()
+        return row[0]
+
+    def insertTask(self,title):
+        self.cur.execute("INSERT INTO task (title) VALUES ('" + title + "')  RETURNING id")
+        row = self.cur.fetchone()
+        self.conn.commit()
+        return row[0]
+
+    def insertGoal(self, question, task_id):
+        self.cur.execute("INSERT INTO goal (question) VALUES ('" + question + "')  RETURNING id")
+        row = self.cur.fetchone()
+        goal_id = row[0]
+        self.conn.commit()
+        self.cur.execute("INSERT INTO taskgoal (goal_id,task_id) VALUES (" + str(goal_id) + "," + str(task_id) + ")")
+        self.conn.commit()
+        return goal_id
+
+    def answerQuestion(self, user_id, goal_id, answer):
+        self.cur.execute(
+            "INSERT INTO usersgoal (user_id,goal_id,answer) VALUES (" + str(user_id) + "," + str(goal_id) + ",'" + str(answer) + "')")
+        self.conn.commit()
+
+    def getUserID(self,name):
+        self.cur.execute("SELECT id FROM users WHERE name='" + name + "'")
+        row = self.cur.fetchone()
+        return row[0]
+
+    #Get the last answer of user_id
+    def getNextQuestion(self,user_id):
+        self.cur.execute("SELECT MAX(goal_id) FROM usersgoal WHERE user_id=" + str(user_id))
+        row = self.cur.fetchone()
+        next = int(row[0]) + 1
+        self.cur.execute("SELECT question FROM goal WHERE id=" + str(next))
+        question = self.cur.fetchone()
+        return question[0]
